@@ -1,0 +1,24 @@
+$cred = Get-Credential
+$rgName = "ResourceGroupName"
+$location = "Azure Location"
+$pipName = "Public IP address Name"
+$pip = New-AzureRmPublicIpAddress -Name $pipName -ResourceGroupName $rgName -Location $location -AllocationMethod Dynamic
+$subnet1Name = "Subnet Name"
+$vnetSubnetAddressPrefix = "Subnet address e.g. 10.1.0.0/24"
+$vnetAddressPrefix = "vnet address e.g. 10.1.0.0/16"
+$nicname = "Name of Nic"
+$vnetName = "Name of vnet"
+$subnetconfig = New-AzureRmVirtualNetworkSubnetConfig -Name $subnet1Name -AddressPrefix $vnetSubnetAddressPrefix
+#$vnet = New-AzureRmVirtualNetwork -Name $vnetName -ResourceGroupName $rgName -Location $location -AddressPrefix $vnetAddressPrefix -Subnet $subnetconfig
+$nic = New-AzureRmNetworkInterface -Name $nicname -ResourceGroupName $rgName -Location $location -SubnetId $vnet.Subnets[0].Id -PublicIpAddressId $pip.Id
+$vmName = "Name of VM"
+$vmConfig = New-AzureRmVMConfig -VMName $vmName -VMSize "Standard_A4"
+$computerName = "Nameof Cumputer"
+$vm = Set-AzureRmVMOperatingSystem -VM $vmConfig -Windows -ComputerName $computerName -Credential $cred -ProvisionVMAgent -EnableAutoUpdate
+$vm = Add-AzureRmVMNetworkInterface -VM $vm -Id $nic.Id
+$osDiskName = "Name of Disk"
+$osDiskUri = '{0}vhds/{1}{2}.vhd' -f $storageAcc.PrimaryEndpoints.Blob.ToString(), $vmName.ToLower(), $osDiskName
+$urlOfUploadedImageVhd = "URL to generaized image https://somename.blob.core.windows.net/system/Microsoft.Compute/Images/templates/name-osDisk.00aaaa-1bbb-2dd3-4efg-hijlkmn0123.vhd"
+$vm = Set-AzureRmVMOSDisk -VM $vm -Name $osDiskName -VhdUri $osDiskUri -CreateOption fromImage -SourceImageUri $urlOfUploadedImageVhd -Windows
+$result = New-AzureRmVM -ResourceGroupName $rgName -Location $location -VM $vm
+$result
